@@ -22,6 +22,24 @@ body {
   overscroll-behavior: none;
 }
 
+/* Ensure chat room takes full height on mobile without scrolling issues */
+@media (max-width: 768px) {  
+  /* Prevent touch scrolling on the main container */
+  .chat-room-container {
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+  }
+  
+  /* Ensure messages area is scrollable but header/input stay fixed */
+  .messages-container {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+}
+
 /* Custom scrollbar styling */
 .scrollbar-thin {
   scrollbar-width: thin;

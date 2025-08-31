@@ -4,6 +4,12 @@ const Group = require('../models/Group');
 const GroupMessage = require('../models/GroupMessage');
 const authenticateToken = require('../middleware/auth');
 
+// Function to set up socket.io instance
+let io;
+const setSocketIo = (socketIo) => {
+  io = socketIo;
+};
+
 // Create a new group
 router.post('/', authenticateToken, async (req, res) => {
   try {
@@ -198,6 +204,16 @@ router.post('/:groupId/messages', authenticateToken, async (req, res) => {
     });
 
     const savedMessage = await message.save();
+
+    // Broadcast the message to all users in the group via Socket.IO
+    if (io) {
+      io.to(`group_${req.params.groupId}`).emit('new-message', {
+        ...savedMessage.toObject(),
+        id: savedMessage._id
+      });
+      console.log(`📡 Broadcasting group message to group_${req.params.groupId} via API`);
+    }
+
     res.status(201).json(savedMessage);
   } catch (error) {
     console.error('Error sending group message:', error);
@@ -205,4 +221,4 @@ router.post('/:groupId/messages', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = { router, setSocketIo };

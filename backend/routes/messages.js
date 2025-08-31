@@ -4,6 +4,14 @@ const mongoose = require('mongoose');
 
 const router = express.Router();
 
+// Function to set up socket.io instance
+let io;
+const setSocketIo = (socketIo) => {
+  io = socketIo;
+};
+
+const router_with_socket = { router, setSocketIo };
+
 // Get messages for a specific company
 router.get('/:companyId', async (req, res) => {
   try {
@@ -80,6 +88,12 @@ router.post('/', async (req, res) => {
       isEdited: message.isEdited,
       editedAt: message.editedAt
     };
+
+    // Broadcast the message to all users in the company via Socket.IO
+    if (io) {
+      io.to(`company_${finalCompanyId}`).emit('new-message', formattedMessage);
+      console.log(`📡 Broadcasting message to company_${finalCompanyId} via API`);
+    }
 
     res.status(201).json(formattedMessage);
   } catch (error) {
@@ -169,23 +183,67 @@ router.delete('/:messageId', async (req, res) => {
   }
 });
 
-// Clear all messages for a user in a specific company (client-side only)
-router.post('/clear/:companyId', async (req, res) => {
+// Clear all messages for a company (actually delete from database)
+router.delete('/clear/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params;
-    const { userId } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ message: 'UserId is required' });
+    // Handle both numeric IDs and MongoDB ObjectIds
+    let queryFilter;
+    if (mongoose.Types.ObjectId.isValid(companyId)) {
+      queryFilter = { companyId: companyId };
+    } else {
+      queryFilter = { companyId: parseInt(companyId) };
     }
 
-    // This is just an endpoint for client-side clearing
-    // The actual clearing will be handled in the frontend Redux store
-    res.json({ message: 'Clear chat request processed' });
+    // Delete all messages for this company
+    const result = await Message.deleteMany(queryFilter);
+
+    console.log(`🧹 Cleared ${result.deletedCount} messages from company ${companyId}`);
+
+    // Broadcast the clear event to all users in the company via Socket.IO
+    if (io) {
+      io.to(`company_${companyId}`).emit('chat-cleared', { companyId });
+      console.log(`📡 Broadcasting chat-cleared to company_${companyId}`);
+    }
+
+    res.json({ 
+      message: 'All messages cleared successfully',
+      deletedCount: result.deletedCount 
+    });
   } catch (error) {
-    console.error('Error clearing chat:', error);
-    res.status(500).json({ message: 'Server error clearing chat' });
+    console.error('Error clearing messages:', error);
+    res.status(500).json({ message: 'Server error clearing messages' });
   }
 });
 
-module.exports = router;
+// Clear all messages for a group (actually delete from database)
+router.delete('/clear/group/:groupId', async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    // Import GroupMessage model
+    const GroupMessage = require('../models/GroupMessage');
+    
+    // Delete all messages for this group
+    const result = await GroupMessage.deleteMany({ groupId: groupId });
+
+    console.log(`🧹 Cleared ${result.deletedCount} messages from group ${groupId}`);
+
+    // Broadcast the clear event to all users in the group via Socket.IO
+    if (io) {
+      io.to(`group_${groupId}`).emit('chat-cleared', { groupId });
+      console.log(`📡 Broadcasting chat-cleared to group_${groupId}`);
+    }
+
+    res.json({ 
+      message: 'All group messages cleared successfully',
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    console.error('Error clearing group messages:', error);
+    res.status(500).json({ message: 'Server error clearing group messages' });
+  }
+});
+
+module.exports = { router, setSocketIo };

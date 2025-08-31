@@ -10,8 +10,8 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/auth');
 const companyRoutes = require('./routes/companies');
-const messageRoutes = require('./routes/messages');
-const groupRoutes = require('./routes/groups');
+const { router: messageRoutes, setSocketIo: setMessageSocketIo } = require('./routes/messages');
+const { router: groupRoutes, setSocketIo: setGroupSocketIo } = require('./routes/groups');
 
 // Import models
 const Message = require('./models/Message');
@@ -66,6 +66,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/groups', groupRoutes);
+
+// Initialize Socket.IO in routes
+setMessageSocketIo(io);
+setGroupSocketIo(io);
 
 // Health check endpoint for deployment platforms
 app.get('/api/health', (req, res) => {
@@ -360,6 +364,46 @@ io.on('connection', (socket) => {
       }
     } catch (error) {
       console.error('Error deleting message:', error);
+    }
+  });
+
+  // Handle clearing company chat
+  socket.on('clear-company-chat', async (data) => {
+    console.log('🧹 Socket received clear-company-chat:', data);
+    try {
+      const { companyId, userId, userName } = data;
+      
+      // Broadcast the clear event to all users in the company room
+      io.to(`company_${companyId}`).emit('chat-cleared', {
+        userId,
+        userName,
+        companyId,
+        type: 'company'
+      });
+      
+      console.log(`✅ Company chat cleared by ${userName} in company ${companyId}`);
+    } catch (error) {
+      console.error('Error handling clear company chat:', error);
+    }
+  });
+
+  // Handle clearing group chat
+  socket.on('clear-group-chat', async (data) => {
+    console.log('🧹 Socket received clear-group-chat:', data);
+    try {
+      const { groupId, userId, userName } = data;
+      
+      // Broadcast the clear event to all users in the group room
+      io.to(`group_${groupId}`).emit('chat-cleared', {
+        userId,
+        userName,
+        groupId,
+        type: 'group'
+      });
+      
+      console.log(`✅ Group chat cleared by ${userName} in group ${groupId}`);
+    } catch (error) {
+      console.error('Error handling clear group chat:', error);
     }
   });
 

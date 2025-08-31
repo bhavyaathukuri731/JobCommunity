@@ -414,6 +414,21 @@ const ChatRoom = () => {
       dispatch(deleteMessage(data.messageId));
     });
 
+    // Listen for chat clearing
+    socketRef.current.on('chat-cleared', (data) => {
+      console.log('🧹 Chat cleared by:', data.userName);
+      dispatch(clearMessages());
+      
+      // Clear from localStorage
+      const localStorageKey = isGroupChat ? `messages_group_${groupId}` : `messages_${companyId}`;
+      localStorage.removeItem(localStorageKey);
+      
+      // Show notification if cleared by another user
+      if (data.userId !== (user?.id || user?.email)) {
+        toast.info(`Chat cleared by ${data.userName}`);
+      }
+    });
+
     // Listen for online users updates
     socketRef.current.on('online-users', (users) => {
       setOnlineUsers(users);
@@ -535,7 +550,7 @@ const ChatRoom = () => {
     try {
       // Send to backend API first
       if (isGroupChat) {
-        await ApiService.sendGroupMessage(messageData);
+        await ApiService.sendGroupMessage(groupId, messageData);
       } else {
         await ApiService.sendMessage(messageData);
       }
@@ -544,9 +559,11 @@ const ChatRoom = () => {
       if (mentions.length > 0) {
         console.log('👥 Message contains mentions:', mentions);
       }
-      console.log('✅ API success - socket will broadcast automatically from backend');
-      // DO NOT emit via socket here - the backend will handle broadcasting
-      // This prevents duplicate messages
+      console.log('✅ API success - message will be broadcast via Socket.IO from backend');
+      
+      // DO NOT add message locally - let the Socket.IO broadcast handle it for all users
+      // This prevents duplicate messages for the sender
+      
     } catch (error) {
       console.error('❌ API error, using fallback for frontend-only company:', error);
       // Fallback for when backend is not available
@@ -555,7 +572,11 @@ const ChatRoom = () => {
       
       dispatch(addMessage(messageData));
       if (socketRef.current) {
-        socketRef.current.emit('send-message', messageData);
+        if (isGroupChat) {
+          socketRef.current.emit('send-group-message', messageData);
+        } else {
+          socketRef.current.emit('send-message', messageData);
+        }
       }
     }
     
@@ -626,18 +647,49 @@ const ChatRoom = () => {
     setShowClearPopup(true);
   };
 
-  const confirmClearChat = () => {
-    // Clear from Redux store
-    dispatch(clearMessages());
-    
-    // Clear from localStorage
-    const localStorageKey = isGroupChat ? `messages_group_${groupId}` : `messages_${companyId}`;
-    localStorage.removeItem(localStorageKey);
-    
-    setShowClearPopup(false);
-    
-    // Show success message
-    toast.success('Chat cleared successfully!');
+  const confirmClearChat = async () => {
+    try {
+      // Clear from database via API
+      if (isGroupChat) {
+        await ApiService.clearGroupMessages(groupId);
+      } else {
+        await ApiService.clearMessages(companyId);
+      }
+
+      // Clear from Redux store
+      dispatch(clearMessages());
+      
+      // Clear from localStorage
+      const localStorageKey = isGroupChat ? `messages_group_${groupId}` : `messages_${companyId}`;
+      localStorage.removeItem(localStorageKey);
+      
+      // Emit socket event to notify other users
+      if (socketRef.current) {
+        if (isGroupChat) {
+          socketRef.current.emit('clear-group-chat', { 
+            groupId, 
+            userId: user?.id || user?.email,
+            userName: user?.name || user?.email 
+          });
+        } else {
+          socketRef.current.emit('clear-company-chat', { 
+            companyId, 
+            userId: user?.id || user?.email,
+            userName: user?.name || user?.email 
+          });
+        }
+      }
+      
+      setShowClearPopup(false);
+      
+      // Show success message
+      toast.success('Chat cleared successfully! All messages have been deleted from the database.');
+      
+    } catch (error) {
+      console.error('Failed to clear chat:', error);
+      toast.error('Failed to clear chat. Please try again.');
+      setShowClearPopup(false);
+    }
   };
 
   const cancelClearChat = () => {
@@ -928,9 +980,9 @@ const ChatRoom = () => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col overflow-hidden relative">
+    <div className="h-screen max-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col overflow-hidden relative chat-room-container">
       {/* Header - Fixed */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0 sticky top-0 z-10">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0 sticky top-0 z-20">
         <div className="w-full px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 sm:py-6">
             <div className="flex items-center min-w-0 flex-1">
@@ -1076,7 +1128,7 @@ const ChatRoom = () => {
         <div className="h-full w-full px-2 sm:px-4 lg:px-8">
           <div className="h-full flex flex-col">
             {/* Messages List */}
-            <div className="flex-1 overflow-y-auto py-3 sm:py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scroll-smooth"
+            <div className="flex-1 overflow-y-auto py-3 sm:py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scroll-smooth overscroll-none touch-pan-y messages-container"
                  style={{ height: 'calc(100vh - 160px)' }}>
               <div className="min-h-full space-y-2 sm:space-y-3">
               {messages.map((message) => {
@@ -1237,7 +1289,7 @@ const ChatRoom = () => {
             </div>
 
             {/* Message Input Area */}
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-6 shadow-lg flex-shrink-0 sticky bottom-0 z-10">
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-6 shadow-lg flex-shrink-0 sticky bottom-0 z-20 safe-area-inset-bottom">
               
               {/* Reply Preview */}
               {replyingTo && (

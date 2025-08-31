@@ -95,6 +95,30 @@ class ApiService {
     });
   }
 
+  static async clearMessages(companyId) {
+    return this.makeRequest(`/api/messages/clear/${companyId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async clearGroupMessages(groupId) {
+    return this.makeRequest(`/api/messages/clear/group/${groupId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Group Messages
+  static async sendGroupMessage(groupId, messageData) {
+    return this.makeRequest(`/api/groups/${groupId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    });
+  }
+
+  static async getGroupMessages(groupId) {
+    return this.makeRequest(`/api/groups/${groupId}/messages`);
+  }
+
   // User management
   static async joinCompany(companyId) {
     return this.makeRequest(`/api/companies/${companyId}/join`, {
