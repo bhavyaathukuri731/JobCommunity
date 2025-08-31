@@ -32,8 +32,7 @@ body {
     height: 100dvh; /* Dynamic viewport height for mobile */
     /* Support for keyboard appearance */
     height: 100svh; /* Small viewport height - accounts for keyboard */
-    min-height: -webkit-fill-available;
-    min-height: fill-available;
+    min-height: stretch;
   }
   
   /* Messages area scrollable with keyboard consideration */
@@ -69,7 +68,6 @@ body {
     .chat-room-container {
       /* iOS Safari specific viewport handling */
       height: stretch;
-      height: -webkit-fill-available;
     }
     
     .messages-container {
