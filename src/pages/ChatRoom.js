@@ -1058,8 +1058,8 @@ const ChatRoom = () => {
           : '100vh'
       }}
     >
-      {/* Header - Fixed */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0 sticky top-0 z-20">
+      {/* Header - Fixed at top */}
+      <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0 fixed top-0 left-0 right-0 z-30 w-full">
         <div className="w-full px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 sm:py-6">
             <div className="flex items-center min-w-0 flex-1">
@@ -1201,14 +1201,14 @@ const ChatRoom = () => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-0 relative">
+      <div className="flex-1 overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-0 relative" style={{ paddingTop: '140px', paddingBottom: '100px' }}>
         <div className="h-full w-full px-2 sm:px-4 lg:px-8">
           <div className="h-full flex flex-col">
             {/* Messages List */}
             <div className="flex-1 overflow-y-auto py-3 sm:py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scroll-smooth overscroll-none touch-pan-y messages-container"
                  style={{ 
-                   height: 'calc(100vh - 160px)', 
-                   maxHeight: 'calc(100svh - 200px)' /* Mobile keyboard support */
+                   height: 'calc(100vh - 240px)',
+                   maxHeight: 'calc(100svh - 240px)' /* Mobile keyboard support */
                  }}>
               <div className="min-h-full space-y-2 sm:space-y-3">
               {messages.map((message) => {
@@ -1369,7 +1369,7 @@ const ChatRoom = () => {
             </div>
 
             {/* Message Input Area */}
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-6 shadow-lg flex-shrink-0 sticky bottom-0 z-20 safe-area-inset-bottom message-input-container"
+            <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-4 shadow-lg flex-shrink-0 fixed bottom-0 left-0 right-0 z-30 w-full message-input-container"
                  style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               
               {/* Reply Preview */}

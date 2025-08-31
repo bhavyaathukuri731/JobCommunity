@@ -107,7 +107,7 @@ class ApiService {
     });
   }
 
-  // Group Messages
+  
   static async sendGroupMessage(groupId, messageData) {
     return this.makeRequest(`/api/groups/${groupId}/messages`, {
       method: 'POST',
