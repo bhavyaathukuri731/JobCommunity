@@ -51,7 +51,11 @@ const ChatRoom = () => {
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const messageInputRef = useRef(null);
+  const chatContainerRef = useRef(null);
   const localMessageIds = useRef(new Set()); // Track locally sent messages to prevent duplicates
+
+  // Mobile keyboard detection state
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const currentCompany = companies.find(c => 
     c.id === parseInt(companyId) || 
@@ -155,6 +159,69 @@ const ChatRoom = () => {
   useEffect(() => {
     localMessageIds.current.clear();
   }, [companyId]);
+
+  // Mobile keyboard detection and handling
+  useEffect(() => {
+    const detectKeyboard = () => {
+      if (window.visualViewport) {
+        // Use Visual Viewport API for modern browsers
+        const handleViewportChange = () => {
+          const heightDifference = window.innerHeight - window.visualViewport.height;
+          const isKeyboardOpen = heightDifference > 150; // Threshold for keyboard detection
+          setIsKeyboardVisible(isKeyboardOpen);
+          
+          if (isKeyboardOpen) {
+            // Keyboard is visible, adjust layout
+            document.body.style.height = `${window.visualViewport.height}px`;
+            // Scroll to input when keyboard appears
+            setTimeout(() => {
+              messageInputRef.current?.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest',
+                inline: 'nearest'
+              });
+            }, 100);
+          } else {
+            // Keyboard is hidden, restore normal height
+            document.body.style.height = '';
+          }
+        };
+        
+        window.visualViewport.addEventListener('resize', handleViewportChange);
+        return () => window.visualViewport.removeEventListener('resize', handleViewportChange);
+      } else {
+        // Fallback for older browsers
+        const initialViewportHeight = window.innerHeight;
+        
+        const handleResize = () => {
+          const currentViewportHeight = window.innerHeight;
+          const heightDifference = initialViewportHeight - currentViewportHeight;
+          const isKeyboardOpen = heightDifference > 150;
+          setIsKeyboardVisible(isKeyboardOpen);
+          
+          if (isKeyboardOpen) {
+            setTimeout(() => {
+              messageInputRef.current?.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'end'
+              });
+            }, 100);
+          }
+        };
+        
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }
+    };
+    
+    // Only apply on mobile devices
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     window.innerWidth <= 768;
+    
+    if (isMobile) {
+      return detectKeyboard();
+    }
+  }, []);
 
   // Save messages to localStorage whenever they change (for frontend-only companies)
   useEffect(() => {
@@ -980,7 +1047,17 @@ const ChatRoom = () => {
   };
 
   return (
-    <div className="h-screen max-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col overflow-hidden relative chat-room-container">
+    <div 
+      ref={chatContainerRef}
+      className={`h-screen max-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col overflow-hidden relative chat-room-container ${
+        isKeyboardVisible ? 'keyboard-visible' : ''
+      }`}
+      style={{
+        height: isKeyboardVisible && window.visualViewport 
+          ? `${window.visualViewport.height}px`
+          : '100vh'
+      }}
+    >
       {/* Header - Fixed */}
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0 sticky top-0 z-20">
         <div className="w-full px-3 sm:px-6 lg:px-8">
@@ -1129,7 +1206,10 @@ const ChatRoom = () => {
           <div className="h-full flex flex-col">
             {/* Messages List */}
             <div className="flex-1 overflow-y-auto py-3 sm:py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scroll-smooth overscroll-none touch-pan-y messages-container"
-                 style={{ height: 'calc(100vh - 160px)' }}>
+                 style={{ 
+                   height: 'calc(100vh - 160px)', 
+                   maxHeight: 'calc(100svh - 200px)' /* Mobile keyboard support */
+                 }}>
               <div className="min-h-full space-y-2 sm:space-y-3">
               {messages.map((message) => {
                 const isInterviewHelp = message.userRole === 'student' && 
@@ -1289,7 +1369,8 @@ const ChatRoom = () => {
             </div>
 
             {/* Message Input Area */}
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-6 shadow-lg flex-shrink-0 sticky bottom-0 z-20 safe-area-inset-bottom">
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-6 shadow-lg flex-shrink-0 sticky bottom-0 z-20 safe-area-inset-bottom message-input-container"
+                 style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               
               {/* Reply Preview */}
               {replyingTo && (
@@ -1326,6 +1407,18 @@ const ChatRoom = () => {
                       const newValue = e.target.value;
                       setNewMessage(newValue);
                       handleMentionDetection(newValue, e.target.selectionStart);
+                    }}
+                    onFocus={() => {
+                      // On mobile, scroll to input when focused
+                      if (window.innerWidth <= 768) {
+                        setTimeout(() => {
+                          messageInputRef.current?.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest'
+                          });
+                        }, 300); // Delay to allow keyboard animation
+                      }
                     }}
                     onKeyDown={(e) => {
                       if (showUserSuggestions && userSuggestions.length > 0) {

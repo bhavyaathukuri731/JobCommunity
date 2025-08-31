@@ -22,21 +22,70 @@ body {
   overscroll-behavior: none;
 }
 
-/* Ensure chat room takes full height on mobile without scrolling issues */
-@media (max-width: 768px) {  
-  /* Prevent touch scrolling on the main container */
+/* Mobile viewport handling for chat room */
+@media (max-width: 768px) {
+  /* Chat room container with proper viewport handling */
   .chat-room-container {
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
     height: 100vh;
     height: 100dvh; /* Dynamic viewport height for mobile */
+    /* Support for keyboard appearance */
+    height: 100svh; /* Small viewport height - accounts for keyboard */
+    min-height: -webkit-fill-available;
+    min-height: fill-available;
   }
   
-  /* Ensure messages area is scrollable but header/input stay fixed */
+  /* Messages area scrollable with keyboard consideration */
   .messages-container {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
+    /* Ensure enough space for keyboard */
+    max-height: calc(100vh - 200px);
+    max-height: calc(100svh - 200px);
+  }
+  
+  /* Input area that stays visible above keyboard */
+  .message-input-container {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    /* Add safe area padding for iOS */
+    padding-bottom: env(safe-area-inset-bottom);
+    /* Ensure input stays above keyboard */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+  
+  /* When input is focused, adjust container height */
+  .chat-room-container:focus-within {
+    height: 100vh;
+    height: 100svh;
+  }
+  
+  /* iOS specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    .chat-room-container {
+      /* iOS Safari specific viewport handling */
+      height: stretch;
+      height: -webkit-fill-available;
+    }
+    
+    .messages-container {
+      /* Adjust for iOS Safari keyboard behavior */
+      max-height: calc(100vh - 200px);
+    }
+  }
+  
+  /* Keyboard visible state adjustments */
+  .chat-room-container.keyboard-visible {
+    height: 100vh !important;
+  }
+  
+  .chat-room-container.keyboard-visible .messages-container {
+    max-height: calc(100vh - 250px) !important;
+    max-height: calc(100svh - 250px) !important;
   }
 }
 
