@@ -22,96 +22,103 @@ body {
   overscroll-behavior: none;
 }
 
-/* Mobile viewport handling for chat room */
+/* WhatsApp-style mobile chat layout */
 @media (max-width: 768px) {
-  /* Chat room container with proper viewport handling */
+  /* Chat room container - full screen fixed */
   .chat-room-container {
-    touch-action: pan-y;
-    -webkit-overflow-scrolling: touch;
-    height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile */
-    height: 100svh; /* Small viewport height - accounts for keyboard */
-    min-height: stretch;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-  }
-  
-  /* Fixed header for mobile */
-  .chat-room-container .fixed.top-0 {
     position: fixed !important;
-    z-index: 40 !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    width: 100% !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important; /* Dynamic viewport height */
+    overflow: hidden !important;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
   }
   
-  /* Fixed footer input for mobile */
-  .chat-room-container .fixed.bottom-0 {
+  /* Fixed header - stays at top like WhatsApp */
+  .chat-room-container header {
     position: fixed !important;
-    z-index: 40 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    height: 80px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+  
+  /* Messages area - scrollable between header and input */
+  .chat-room-container main {
+    position: fixed !important;
+    top: 80px !important;
+    bottom: 80px !important;
+    left: 0 !important;
+    right: 0 !important;
+    overflow: hidden !important;
+    background: transparent !important;
+  }
+  
+  /* Messages container - proper scrolling */
+  .messages-container {
+    height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+  
+  /* Fixed footer input - stays at bottom like WhatsApp */
+  .chat-room-container footer {
+    position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    width: 100% !important;
+    z-index: 1000 !important;
+    min-height: 80px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
   }
   
-  /* Messages area scrollable with proper spacing */
-  .messages-container {
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    height: calc(100vh - 240px) !important;
-    height: calc(100svh - 240px) !important;
-    max-height: calc(100vh - 240px) !important;
-    max-height: calc(100svh - 240px) !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
+  /* Remove any layers or overlays */
+  .chat-room-container * {
+    position: relative;
   }
   
-  /* Input area that stays visible above keyboard */
-  .message-input-container {
+  .chat-room-container header,
+  .chat-room-container main,
+  .chat-room-container footer {
     position: fixed !important;
-    bottom: 0 !important;
-    z-index: 40 !important;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
   }
   
-  /* When input is focused, adjust container height */
-  .chat-room-container:focus-within {
-    height: 100vh;
-    height: 100svh;
+  /* Dark mode adjustments */
+  .dark .chat-room-container header {
+    background: rgba(31, 41, 55, 0.95) !important;
   }
   
-  /* iOS specific fixes */
+  .dark .chat-room-container footer {
+    background: rgba(31, 41, 55, 0.95) !important;
+  }
+  
+  /* Keyboard support */
+  .chat-room-container:focus-within footer {
+    transform: translateY(0) !important;
+  }
+  
+  /* iOS Safari specific fixes */
   @supports (-webkit-touch-callout: none) {
     .chat-room-container {
-      /* iOS Safari specific viewport handling */
-      height: stretch;
+      height: -webkit-fill-available !important;
     }
-    
-    .messages-container {
-      /* Adjust for iOS Safari keyboard behavior */
-      height: calc(100vh - 240px) !important;
-    }
-  }
-  
-  /* Keyboard visible state adjustments */
-  .chat-room-container.keyboard-visible {
-    height: 100vh !important;
-  }
-  
-  .chat-room-container.keyboard-visible .messages-container {
-    height: calc(100vh - 280px) !important;
-    height: calc(100svh - 280px) !important;
-    max-height: calc(100vh - 280px) !important;
-    max-height: calc(100svh - 280px) !important;
   }
 }
 

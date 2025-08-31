@@ -51,11 +51,7 @@ const ChatRoom = () => {
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const messageInputRef = useRef(null);
-  const chatContainerRef = useRef(null);
   const localMessageIds = useRef(new Set()); // Track locally sent messages to prevent duplicates
-
-  // Mobile keyboard detection state
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const currentCompany = companies.find(c => 
     c.id === parseInt(companyId) || 
@@ -160,68 +156,7 @@ const ChatRoom = () => {
     localMessageIds.current.clear();
   }, [companyId]);
 
-  // Mobile keyboard detection and handling
-  useEffect(() => {
-    const detectKeyboard = () => {
-      if (window.visualViewport) {
-        // Use Visual Viewport API for modern browsers
-        const handleViewportChange = () => {
-          const heightDifference = window.innerHeight - window.visualViewport.height;
-          const isKeyboardOpen = heightDifference > 150; // Threshold for keyboard detection
-          setIsKeyboardVisible(isKeyboardOpen);
-          
-          if (isKeyboardOpen) {
-            // Keyboard is visible, adjust layout
-            document.body.style.height = `${window.visualViewport.height}px`;
-            // Scroll to input when keyboard appears
-            setTimeout(() => {
-              messageInputRef.current?.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest',
-                inline: 'nearest'
-              });
-            }, 100);
-          } else {
-            // Keyboard is hidden, restore normal height
-            document.body.style.height = '';
-          }
-        };
-        
-        window.visualViewport.addEventListener('resize', handleViewportChange);
-        return () => window.visualViewport.removeEventListener('resize', handleViewportChange);
-      } else {
-        // Fallback for older browsers
-        const initialViewportHeight = window.innerHeight;
-        
-        const handleResize = () => {
-          const currentViewportHeight = window.innerHeight;
-          const heightDifference = initialViewportHeight - currentViewportHeight;
-          const isKeyboardOpen = heightDifference > 150;
-          setIsKeyboardVisible(isKeyboardOpen);
-          
-          if (isKeyboardOpen) {
-            setTimeout(() => {
-              messageInputRef.current?.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'end'
-              });
-            }, 100);
-          }
-        };
-        
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-      }
-    };
-    
-    // Only apply on mobile devices
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                     window.innerWidth <= 768;
-    
-    if (isMobile) {
-      return detectKeyboard();
-    }
-  }, []);
+
 
   // Save messages to localStorage whenever they change (for frontend-only companies)
   useEffect(() => {
@@ -1047,63 +982,39 @@ const ChatRoom = () => {
   };
 
   return (
-    <div 
-      ref={chatContainerRef}
-      className={`h-screen max-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col overflow-hidden relative chat-room-container ${
-        isKeyboardVisible ? 'keyboard-visible' : ''
-      }`}
-      style={{
-        height: isKeyboardVisible && window.visualViewport 
-          ? `${window.visualViewport.height}px`
-          : '100vh'
-      }}
-    >
-      {/* Header - Fixed at top */}
-      <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0 fixed top-0 left-0 right-0 z-30 w-full">
-        <div className="w-full px-3 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-3 sm:py-6">
+    <div className="h-screen w-screen fixed inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 chat-room-container">
+      
+      {/* Fixed Header */}
+      <header className="absolute top-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50">
+        <div className="w-full px-4">
+          <div className="flex justify-between items-center py-4">
             <div className="flex items-center min-w-0 flex-1">
               <button
                 onClick={() => navigate('/companies')}
-                className="mr-2 sm:mr-4 p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 flex-shrink-0"
+                className="mr-3 p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 flex-shrink-0"
               >
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
               </button>
+              
               <div className="min-w-0 flex-1">
-                <div className="flex items-center">
-                  <img 
-                    src="/navinity-logo.svg" 
-                    alt="Navinity" 
-                    className="w-6 h-6 sm:w-8 sm:h-8 mr-2 flex-shrink-0"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                  <h1 className="text-base sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent truncate">
+                <div className="flex items-center mb-1">
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent truncate">
                     {isGroupChat 
                       ? (currentGroup ? `${currentGroup.name}` : 'Private Group') 
                       : `${currentCompany?.name || 'Navinity'}`
                     }
                   </h1>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1 truncate">
-                  {isGroupChat
-                    ? (currentGroup ? `Private group • ${currentGroup.members?.length || 0} members` : 'Loading group...')
-                    : (user?.role === 'student' 
-                      ? `Ask ${currentCompany.name} employees for interview help and guidance`
-                      : `Help job seekers and share insights about ${currentCompany.name}`
-                    )
-                  }
-                </p>
-                <div className="flex items-center space-x-3 sm:space-x-6 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  <div className="flex items-center space-x-1 sm:space-x-2">
-                    <div className="flex -space-x-1">
+                
+                <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center space-x-1">
+                    <div className="flex -space-x-0.5">
                       {onlineUsers.slice(0, 3).map((user, index) => (
                         <div 
                           key={index} 
-                          className="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 border-2 border-white dark:border-gray-800 flex items-center justify-center text-xs font-medium text-white"
+                          className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 border border-white dark:border-gray-800 flex items-center justify-center text-xs font-medium text-white"
                         >
                           {(user.firstName || user.name)?.charAt(0).toUpperCase() || 'U'}
                         </div>
@@ -1111,18 +1022,20 @@ const ChatRoom = () => {
                     </div>
                     <span className="font-medium">{onlineUsers.length} online</span>
                   </div>
-                  <div className={`flex items-center space-x-1 sm:space-x-2 px-2 py-1 rounded-full transition-all ${
+                  
+                  <div className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs ${
                     isConnected 
                       ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' 
                       : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
                   }`}>
-                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-pulse ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="font-medium text-xs">{isConnected ? 'Connected' : 'Disconnected'}</span>
+                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="font-medium">{isConnected ? 'Connected' : 'Disconnected'}</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-1 sm:space-x-3 ml-2">
+            
+            <div className="flex items-center space-x-1 ml-2">
               {isGroupChat && isGroupAdmin() && (
                 <button
                   onClick={openAddMembers}
@@ -1198,19 +1111,13 @@ const ChatRoom = () => {
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-0 relative" style={{ paddingTop: '140px', paddingBottom: '100px' }}>
-        <div className="h-full w-full px-2 sm:px-4 lg:px-8">
-          <div className="h-full flex flex-col">
-            {/* Messages List */}
-            <div className="flex-1 overflow-y-auto py-3 sm:py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scroll-smooth overscroll-none touch-pan-y messages-container"
-                 style={{ 
-                   height: 'calc(100vh - 240px)',
-                   maxHeight: 'calc(100svh - 240px)' /* Mobile keyboard support */
-                 }}>
-              <div className="min-h-full space-y-2 sm:space-y-3">
+      {/* Messages Area - Fixed between header and input */}
+      <main className="absolute top-20 bottom-20 left-0 right-0 overflow-hidden">
+        <div className="h-full w-full">
+          <div className="h-full overflow-y-auto px-2 sm:px-4 py-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 messages-container">
+            <div className="space-y-2 sm:space-y-3">
               {messages.map((message) => {
                 const isInterviewHelp = message.userRole === 'student' && 
                   (message.text.toLowerCase().includes('interview') || 
@@ -1365,39 +1272,41 @@ const ChatRoom = () => {
                 );
               })}
               <div ref={messagesEndRef} />
-              </div>
             </div>
+          </div>
+        </div>
+      </main>
 
-            {/* Message Input Area */}
-            <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-4 shadow-lg flex-shrink-0 fixed bottom-0 left-0 right-0 z-30 w-full message-input-container"
-                 style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-              
-              {/* Reply Preview */}
-              {replyingTo && (
-                <div className="mb-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded-r-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
-                        Replying to {replyingTo.userName}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                        {replyingTo.text}
-                      </div>
-                    </div>
-                    <button
-                      onClick={cancelReply}
-                      className="ml-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                      </svg>
-                    </button>
+      {/* Fixed Input Area - WhatsApp Style */}
+      <footer className="absolute bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <div className="p-3 sm:p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          
+          {/* Reply Preview */}
+          {replyingTo && (
+            <div className="mb-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded-r-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                    Replying to {replyingTo.userName}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                    {replyingTo.text}
                   </div>
                 </div>
-              )}
+                <button
+                  onClick={cancelReply}
+                  className="ml-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
 
               {/* Message Input Form */}
-              <form onSubmit={sendMessage} className="flex space-x-2 sm:space-x-4">
+              <form onSubmit={sendMessage} className="flex items-center space-x-2 sm:space-x-4">
                 <div className="flex-1 relative">
                   <input
                     ref={messageInputRef}
@@ -1465,7 +1374,7 @@ const ChatRoom = () => {
                         : "Connecting..."
                     }
                     disabled={!isConnected}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-xl sm:rounded-2xl px-3 sm:px-6 py-2.5 sm:py-4 pr-8 sm:pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 bg-white/90 dark:bg-gray-700/90 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 backdrop-blur-sm transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
+                    className="w-full h-12 sm:h-14 border border-gray-300 dark:border-gray-600 rounded-xl sm:rounded-2xl px-3 sm:px-6 py-2.5 sm:py-4 pr-10 sm:pr-14 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 bg-white/90 dark:bg-gray-700/90 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 backdrop-blur-sm transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
                   />
                   
                   {/* User Suggestions Dropdown for Mentions - Slack Style */}
@@ -1520,7 +1429,8 @@ const ChatRoom = () => {
                       </div>
                     </div>
                   )}
-                  <div className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2">
+                  {/* Message Icon - Properly Centered */}
+                  <div className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 flex items-center justify-center">
                     <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
                     </svg>
@@ -1529,7 +1439,7 @@ const ChatRoom = () => {
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || !isConnected}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-4 sm:px-8 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-xl disabled:shadow-none text-sm sm:text-base"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-4 sm:px-8 py-2.5 sm:py-4 h-12 sm:h-14 rounded-xl sm:rounded-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-xl disabled:shadow-none text-sm sm:text-base flex items-center justify-center"
                 >
                   <span className="flex items-center space-x-1 sm:space-x-2">
                     <span>Send</span>
@@ -1540,9 +1450,7 @@ const ChatRoom = () => {
                 </button>
               </form>
             </div>
-          </div>
-        </div>
-      </div>
+          </footer>
 
       {/* User Profile Modal */}
       <UserProfile 
